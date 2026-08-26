@@ -1,0 +1,42 @@
+---
+- name: Diagnose APT lock
+  hosts: ubuntu
+  become: true
+  become_method: sudo
+  become_user: root
+  gather_facts: false
+
+  tasks:
+
+    - name: Check APT process
+      ansible.builtin.command:
+        cmd: ps -fp 1890027
+      register: apt_process
+      changed_when: false
+      failed_when: false
+
+    - name: Display APT process
+      ansible.builtin.debug:
+        var: apt_process.stdout_lines
+
+    - name: Check all APT and DPKG processes
+      ansible.builtin.shell:
+        cmd: ps aux | grep -E '[a]pt|[d]pkg|[u]nattended'
+      register: apt_processes
+      changed_when: false
+      failed_when: false
+
+    - name: Display running package processes
+      ansible.builtin.debug:
+        var: apt_processes.stdout_lines
+
+    - name: Check unattended upgrades
+      ansible.builtin.systemd:
+        name: unattended-upgrades
+      register: unattended_status
+      changed_when: false
+      failed_when: false
+
+    - name: Display unattended upgrade status
+      ansible.builtin.debug:
+        var: unattended_status.status.ActiveState
