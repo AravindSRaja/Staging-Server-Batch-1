@@ -2,6 +2,8 @@
 - name: Ubuntu 22.04 CIS Level 1 OpenSCAP Assessment and Artifact Upload
   hosts: ubuntu
   become: true
+  become_method: sudo
+  become_user: root
   gather_facts: false
 
   vars:
@@ -44,9 +46,6 @@
 
     # ============================================================
     # Semaphore / Git repository artifact directory
-    #
-    # playbook_dir points to the Git repository checkout
-    # inside the Semaphore task environment.
     # ============================================================
 
     artifact_base_dir: "{{ playbook_dir }}/oscap-artifacts"
@@ -77,23 +76,45 @@
 
     expected_git_branch: "main"
 
+
     # ============================================================
     # GitHub authentication
-    #
-    # GITHUB_TOKEN must be provided to the Semaphore task as a
-    # SECRET environment variable / Variable Group value.
-    # The token is never stored in this playbook.
     # ============================================================
 
     github_username: "AravindSRaja"
+
     github_token_env: "GITHUB_TOKEN"
+
     git_askpass_file: "/tmp/semaphore-github-askpass.sh"
 
 
   tasks:
 
     # ============================================================
-    # 1. Verify Ubuntu 22.04
+    # 1. Verify privilege escalation
+    # ============================================================
+
+    - name: Verify Ansible is running as root
+      ansible.builtin.command:
+        cmd: whoami
+      register: current_user
+      changed_when: false
+
+    - name: Display current privilege
+      ansible.builtin.debug:
+        msg: "Ansible is running as: {{ current_user.stdout }}"
+
+    - name: Verify root privilege
+      ansible.builtin.assert:
+        that:
+          - current_user.stdout == "root"
+        fail_msg: >-
+          Ansible is not running as root.
+          Semaphore sudo/become credentials must be configured correctly.
+
+
+    # ============================================================
+    # 2. Verify Ubuntu 22.04
     # ============================================================
 
     - name: Check Ubuntu version
@@ -101,7 +122,6 @@
         cmd: grep '^VERSION_ID=' /etc/os-release
       register: ubuntu_version
       changed_when: false
-
 
     - name: Verify Ubuntu 22.04
       ansible.builtin.assert:
@@ -113,7 +133,7 @@
 
 
     # ============================================================
-    # 2. Enable Universe repository
+    # 3. Enable Universe repository
     # ============================================================
 
     - name: Enable Universe repository
@@ -124,7 +144,7 @@
 
 
     # ============================================================
-    # 3. Update APT cache
+    # 4. Update APT cache
     # ============================================================
 
     - name: Update APT cache
@@ -134,7 +154,7 @@
 
 
     # ============================================================
-    # 4. Verify OpenSCAP package availability
+    # 5. Verify OpenSCAP package availability
     # ============================================================
 
     - name: Check OpenSCAP package availability
@@ -143,11 +163,9 @@
       register: openscap_package
       changed_when: false
 
-
     - name: Display OpenSCAP package information
       ansible.builtin.debug:
         var: openscap_package.stdout_lines
-
 
     - name: Verify OpenSCAP package is available
       ansible.builtin.assert:
@@ -159,7 +177,7 @@
 
 
     # ============================================================
-    # 5. Install OpenSCAP and utilities
+    # 6. Install OpenSCAP and utilities
     # ============================================================
 
     - name: Install OpenSCAP and utilities
@@ -172,7 +190,7 @@
 
 
     # ============================================================
-    # 6. Verify OpenSCAP
+    # 7. Verify OpenSCAP
     # ============================================================
 
     - name: Check OpenSCAP version
@@ -181,21 +199,19 @@
       register: oscap_version
       changed_when: false
 
-
     - name: Display OpenSCAP version
       ansible.builtin.debug:
         var: oscap_version.stdout_lines
 
 
     # ============================================================
-    # 7. Verify oscap binary
+    # 8. Verify oscap binary
     # ============================================================
 
     - name: Check oscap binary
       ansible.builtin.stat:
         path: /usr/bin/oscap
       register: oscap_binary
-
 
     - name: Verify oscap binary exists
       ansible.builtin.assert:
@@ -208,7 +224,7 @@
 
 
     # ============================================================
-    # 8. Create SSG directory
+    # 9. Create SSG directory
     # ============================================================
 
     - name: Create SSG content directory
@@ -221,7 +237,7 @@
 
 
     # ============================================================
-    # 9. Check Ubuntu 22.04 datastream
+    # 10. Check Ubuntu 22.04 datastream
     # ============================================================
 
     - name: Check Ubuntu 22.04 SSG datastream
@@ -231,7 +247,7 @@
 
 
     # ============================================================
-    # 10. Download SSG if required
+    # 11. Download SSG if required
     # ============================================================
 
     - name: Download SCAP Security Guide
@@ -244,7 +260,7 @@
 
 
     # ============================================================
-    # 11. Extract Ubuntu 22.04 datastream
+    # 12. Extract Ubuntu 22.04 datastream
     # ============================================================
 
     - name: Extract Ubuntu 22.04 SSG datastream
@@ -258,14 +274,13 @@
 
 
     # ============================================================
-    # 12. Verify datastream
+    # 13. Verify datastream
     # ============================================================
 
     - name: Verify Ubuntu 22.04 datastream
       ansible.builtin.stat:
         path: "{{ datastream }}"
       register: datastream_final
-
 
     - name: Ensure Ubuntu 22.04 datastream exists
       ansible.builtin.assert:
@@ -278,7 +293,7 @@
 
 
     # ============================================================
-    # 13. Verify CIS Level 1 profile
+    # 14. Verify CIS Level 1 profile
     # ============================================================
 
     - name: Check CIS Level 1 profile
@@ -286,7 +301,6 @@
         cmd: oscap info "{{ datastream }}"
       register: oscap_info
       changed_when: false
-
 
     - name: Verify CIS Level 1 profile
       ansible.builtin.assert:
@@ -298,7 +312,7 @@
 
 
     # ============================================================
-    # 14. Display scan configuration
+    # 15. Display scan configuration
     # ============================================================
 
     - name: Display scan configuration
@@ -318,7 +332,7 @@
 
 
     # ============================================================
-    # 15. Create remote OpenSCAP directory
+    # 16. Create remote OpenSCAP directory
     # ============================================================
 
     - name: Create OpenSCAP scan directory
@@ -331,10 +345,7 @@
 
 
     # ============================================================
-    # 16. Remove previous assessment files on remote server
-    #
-    # These are working files only.
-    # Previous GitHub commits remain preserved in Git history.
+    # 17. Remove previous assessment files
     # ============================================================
 
     - name: Remove previous XML result
@@ -342,12 +353,10 @@
         path: "{{ results_file }}"
         state: absent
 
-
     - name: Remove previous HTML report
       ansible.builtin.file:
         path: "{{ report_file }}"
         state: absent
-
 
     - name: Remove previous remediation script
       ansible.builtin.file:
@@ -356,7 +365,7 @@
 
 
     # ============================================================
-    # 17. Run CIS Level 1 scan
+    # 18. Run CIS Level 1 scan
     # ============================================================
 
     - name: Run Ubuntu 22.04 CIS Level 1 assessment
@@ -369,18 +378,11 @@
           "{{ datastream }}"
       register: oscap_scan
       changed_when: false
-
-      # OpenSCAP:
-      # 0 = assessment completed without findings
-      # 2 = assessment completed with findings
-      #
-      # Both are valid assessment outcomes.
-
       failed_when: oscap_scan.rc not in [0, 2]
 
 
     # ============================================================
-    # 18. Display scan output
+    # 19. Display scan output
     # ============================================================
 
     - name: Display OpenSCAP scan output
@@ -389,7 +391,7 @@
 
 
     # ============================================================
-    # 19. Display warnings/errors
+    # 20. Display warnings/errors
     # ============================================================
 
     - name: Display OpenSCAP stderr
@@ -401,7 +403,7 @@
 
 
     # ============================================================
-    # 20. Display return code
+    # 21. Display return code
     # ============================================================
 
     - name: Display OpenSCAP return code
@@ -412,7 +414,7 @@
 
 
     # ============================================================
-    # 21. Verify XML result
+    # 22. Verify XML result
     # ============================================================
 
     - name: Check XML result
@@ -422,7 +424,7 @@
 
 
     # ============================================================
-    # 22. Verify HTML report
+    # 23. Verify HTML report
     # ============================================================
 
     - name: Check HTML report
@@ -432,7 +434,7 @@
 
 
     # ============================================================
-    # 23. Validate scan artifacts
+    # 24. Validate scan artifacts
     # ============================================================
 
     - name: Verify OpenSCAP results were generated
@@ -447,7 +449,7 @@
 
 
     # ============================================================
-    # 24. Extract XCCDF TestResult ID
+    # 25. Extract XCCDF TestResult ID
     # ============================================================
 
     - name: Extract XCCDF TestResult ID
@@ -468,7 +470,7 @@
 
 
     # ============================================================
-    # 25. Verify TestResult ID
+    # 26. Verify TestResult ID
     # ============================================================
 
     - name: Verify XCCDF TestResult ID
@@ -481,7 +483,7 @@
 
 
     # ============================================================
-    # 26. Generate Bash remediation
+    # 27. Generate Bash remediation
     #
     # IMPORTANT:
     # This generates the remediation script only.
@@ -501,14 +503,13 @@
 
 
     # ============================================================
-    # 27. Verify remediation script
+    # 28. Verify remediation script
     # ============================================================
 
     - name: Check remediation script
       ansible.builtin.stat:
         path: "{{ remediation_file }}"
       register: remediation_stat
-
 
     - name: Verify remediation script was generated
       ansible.builtin.assert:
@@ -520,7 +521,7 @@
 
 
     # ============================================================
-    # 28. Secure remediation script
+    # 29. Secure remediation script
     # ============================================================
 
     - name: Set remediation script permissions
@@ -532,7 +533,7 @@
 
 
     # ============================================================
-    # 29. Display remote artifacts
+    # 30. Display remote artifacts
     # ============================================================
 
     - name: Display generated files on remote server
@@ -554,15 +555,7 @@
 
 
     # ============================================================
-    # 30. Create artifact directory in Semaphore repository
-    #
-    # This creates:
-    #
-    # oscap-artifacts/<server-ip>/
-    #
-    # Example:
-    #
-    # oscap-artifacts/192.168.1.37/
+    # 31. Create artifact directory in Semaphore repository
     # ============================================================
 
     - name: Create GitHub artifact directory
@@ -575,7 +568,7 @@
 
 
     # ============================================================
-    # 31. Fetch XML result to Semaphore
+    # 32. Fetch XML result to Semaphore
     # ============================================================
 
     - name: Fetch XML result to Semaphore
@@ -586,7 +579,7 @@
 
 
     # ============================================================
-    # 32. Fetch HTML report to Semaphore
+    # 33. Fetch HTML report to Semaphore
     # ============================================================
 
     - name: Fetch HTML report to Semaphore
@@ -597,7 +590,7 @@
 
 
     # ============================================================
-    # 33. Fetch remediation script to Semaphore
+    # 34. Fetch remediation script to Semaphore
     # ============================================================
 
     - name: Fetch remediation script to Semaphore
@@ -608,7 +601,7 @@
 
 
     # ============================================================
-    # 34. Verify fetched files on Semaphore
+    # 35. Verify fetched files
     # ============================================================
 
     - name: Verify XML artifact on Semaphore
@@ -650,7 +643,7 @@
 
 
     # ============================================================
-    # 35. Display Semaphore artifact location
+    # 36. Display Semaphore artifact location
     # ============================================================
 
     - name: Display Semaphore artifact location
@@ -673,16 +666,12 @@
   # POST TASKS
   #
   # These execute only after ALL hosts have completed the main tasks.
-  #
-  # This is important when scanning multiple Ubuntu servers at once.
-  # We don't want the first server to commit/push before the other
-  # servers have finished fetching their artifacts.
   # ==================================================================
 
   post_tasks:
 
     # ============================================================
-    # 36. Verify Git repository
+    # 37. Verify Git repository
     # ============================================================
 
     - name: Get Git remote URL
@@ -706,7 +695,7 @@
 
 
     # ============================================================
-    # 37. Verify correct GitHub repository
+    # 38. Verify correct GitHub repository
     # ============================================================
 
     - name: Verify correct GitHub repository
@@ -728,7 +717,7 @@
 
 
     # ============================================================
-    # 38. Configure Git user
+    # 39. Configure Git user
     # ============================================================
 
     - name: Configure Git username
@@ -752,7 +741,7 @@
 
 
     # ============================================================
-    # 39. Check Git status
+    # 40. Check Git status
     # ============================================================
 
     - name: Check Git status
@@ -774,7 +763,7 @@
 
 
     # ============================================================
-    # 40. Add OpenSCAP artifacts
+    # 41. Add OpenSCAP artifacts
     # ============================================================
 
     - name: Add OpenSCAP artifacts to Git
@@ -788,7 +777,7 @@
 
 
     # ============================================================
-    # 41. Check staged changes
+    # 42. Check staged changes
     # ============================================================
 
     - name: Check staged OpenSCAP artifacts
@@ -810,7 +799,7 @@
 
 
     # ============================================================
-    # 42. Commit artifacts
+    # 43. Commit artifacts
     # ============================================================
 
     - name: Commit OpenSCAP artifacts
@@ -830,10 +819,6 @@
         - "'nothing to commit' not in git_commit.stderr"
 
 
-    # ============================================================
-    # 43. Display commit information
-    # ============================================================
-
     - name: Display Git commit result
       ansible.builtin.debug:
         msg:
@@ -844,16 +829,6 @@
 
     # ============================================================
     # 44. Authenticate and push artifacts to GitHub
-    #
-    # IMPORTANT:
-    # - GITHUB_TOKEN must be configured as a SECRET variable in
-    #   the Semaphore Variable Group attached to this template.
-    # - The GitHub PAT must have Contents: Read and write access
-    #   to the Server-hardening-2204 repository.
-    # - The token is supplied through the environment and is NOT
-    #   placed in the repository URL, YAML, inventory, or command.
-    # - A temporary GIT_ASKPASS helper is used for non-interactive
-    #   authentication and is removed after the push.
     # ============================================================
 
     - name: Verify GitHub token is available
@@ -869,6 +844,7 @@
       run_once: true
       no_log: true
 
+
     - name: Create temporary GitHub GIT_ASKPASS helper
       ansible.builtin.copy:
         dest: "{{ git_askpass_file }}"
@@ -877,19 +853,20 @@
           #!/bin/sh
           case "$1" in
             *Username*)
-              printf '%s\\n' "$GITHUB_USERNAME"
+              printf '%s\n' "$GITHUB_USERNAME"
               ;;
             *Password*)
-              printf '%s\\n' "$GITHUB_TOKEN"
+              printf '%s\n' "$GITHUB_TOKEN"
               ;;
             *)
-              printf '%s\\n' "$GITHUB_TOKEN"
+              printf '%s\n' "$GITHUB_TOKEN"
               ;;
           esac
       delegate_to: localhost
       become: false
       run_once: true
       no_log: true
+
 
     - name: Push OpenSCAP artifacts to GitHub
       ansible.builtin.command:
@@ -905,6 +882,8 @@
       become: false
       run_once: true
       register: git_push
+      no_log: true
+
 
     - name: Remove temporary GitHub GIT_ASKPASS helper
       ansible.builtin.file:
@@ -960,7 +939,7 @@
           - "{{ playbook_dir }}/oscap-artifacts/"
           - ""
           - "GitHub repository:"
-          - "https://github.com/AravindSRaja/Server-hardening-2204"
+          - "https://github.com/AravindSRaja/Staging-Server-Batch-1-2204"
           - ""
           - "GitHub path:"
           - "oscap-artifacts/<server-IP>/"
