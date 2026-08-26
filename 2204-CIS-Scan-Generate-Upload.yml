@@ -136,11 +136,11 @@
     # 3. Enable Universe repository
     # ============================================================
 
-    - name: Enable Universe repository
-      ansible.builtin.apt_repository:
-        repo: "deb http://archive.ubuntu.com/ubuntu jammy universe"
-        state: present
-        filename: ubuntu-universe
+#    - name: Enable Universe repository
+#      ansible.builtin.apt_repository:
+#        repo: "deb http://archive.ubuntu.com/ubuntu jammy universe"
+#        state: present
+#        filename: ubuntu-universe
 
 
     # ============================================================
