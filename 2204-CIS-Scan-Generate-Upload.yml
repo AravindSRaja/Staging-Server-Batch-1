@@ -72,7 +72,7 @@
     # Expected GitHub repository
     # ============================================================
 
-    expected_git_repo: "Staging-Server-Batch-1-2204"
+    expected_git_repo: "Staging-Server-Batch-1"
 
     expected_git_branch: "main"
 
