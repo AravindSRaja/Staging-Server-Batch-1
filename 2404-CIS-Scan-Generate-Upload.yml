@@ -148,7 +148,7 @@
 
     - name: Check OpenSCAP package availability
       ansible.builtin.command:
-        cmd: apt-cache policy libopenscap8
+        cmd: apt-cache policy openscap-scanner
       register: openscap_package
       changed_when: false
 
@@ -161,7 +161,7 @@
         that:
           - "'Candidate: (none)' not in openscap_package.stdout"
         fail_msg: >-
-          libopenscap8 is not available from the configured
+          openscap-scanner is not available from the configured
           Ubuntu 24.04 repositories.
 
 
@@ -172,7 +172,8 @@
     - name: Install OpenSCAP and utilities
       ansible.builtin.apt:
         name:
-          - libopenscap8
+          - openscap-scanner
+          - openscap-utils
           - unzip
           - curl
         state: present
@@ -209,7 +210,7 @@
           - oscap_binary.stat.executable
         fail_msg: >-
           /usr/bin/oscap was not found after installing
-          libopenscap8.
+          openscap-scanner.
 
 
     # ============================================================
