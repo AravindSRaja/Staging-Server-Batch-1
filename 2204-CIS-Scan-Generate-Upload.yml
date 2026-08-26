@@ -939,7 +939,7 @@
           - "{{ playbook_dir }}/oscap-artifacts/"
           - ""
           - "GitHub repository:"
-          - "https://github.com/AravindSRaja/Staging-Server-Batch-1-2204"
+          - "https://github.com/AravindSRaja/Staging-Server-Batch-1"
           - ""
           - "GitHub path:"
           - "oscap-artifacts/<server-IP>/"
