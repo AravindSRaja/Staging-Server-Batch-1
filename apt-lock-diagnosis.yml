@@ -1,0 +1,35 @@
+---
+- name: Check APT Update Process Tree
+  hosts: all
+  gather_facts: false
+  become: true
+  become_method: sudo
+  become_user: root
+
+  tasks:
+
+    - name: Find running apt-get update processes
+      ansible.builtin.shell:
+        cmd: pgrep -af 'apt-get.*update'
+      register: apt_update
+      changed_when: false
+      failed_when: false
+
+    - name: Display apt-get update process
+      ansible.builtin.debug:
+        msg: "{{ apt_update.stdout_lines }}"
+
+    - name: Display process tree associated with apt-get update
+      ansible.builtin.shell:
+        cmd: |
+          for pid in $(pgrep -f 'apt-get.*update'); do
+            echo "===== APT UPDATE PID: $pid ====="
+            pstree -ap "$pid"
+          done
+      register: apt_tree
+      changed_when: false
+      failed_when: false
+
+    - name: Show APT update process tree
+      ansible.builtin.debug:
+        msg: "{{ apt_tree.stdout_lines }}"
