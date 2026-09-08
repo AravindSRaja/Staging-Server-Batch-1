@@ -1,5 +1,5 @@
 ---
-- name: Check APT Update Process Tree
+- name: Check APT Update Lock Process
   hosts: all
   gather_facts: false
   become: true
@@ -8,28 +8,36 @@
 
   tasks:
 
-    - name: Find running apt-get update processes
+    - name: Find running apt-get update process
       ansible.builtin.shell:
-        cmd: pgrep -af 'apt-get.*update'
-      register: apt_update
+        cmd: ps -eo pid,ppid,etime,stat,wchan:32,cmd | grep -E '[a]pt-get.*update'
+      register: apt_update_process
       changed_when: false
       failed_when: false
 
-    - name: Display apt-get update process
+    - name: Display APT update process details
       ansible.builtin.debug:
-        msg: "{{ apt_update.stdout_lines }}"
+        msg:
+          - "Server: {{ inventory_hostname }}"
+          - "APT update process:"
+          - "{{ apt_update_process.stdout_lines }}"
 
-    - name: Display process tree associated with apt-get update
+    - name: Display APT update process hierarchy
       ansible.builtin.shell:
         cmd: |
           for pid in $(pgrep -f 'apt-get.*update'); do
             echo "===== APT UPDATE PID: $pid ====="
+            echo "--- Process Details ---"
+            ps -p "$pid" -o pid,ppid,etime,etimes,lstart,stat,wchan:32,cmd
+            echo "--- Parent Tree ---"
+            pstree -sp "$pid"
+            echo "--- Child Tree ---"
             pstree -ap "$pid"
           done
-      register: apt_tree
+      register: apt_process_tree
       changed_when: false
       failed_when: false
 
-    - name: Show APT update process tree
+    - name: Display APT process information
       ansible.builtin.debug:
-        msg: "{{ apt_tree.stdout_lines }}"
+        msg: "{{ apt_process_tree.stdout_lines }}"
