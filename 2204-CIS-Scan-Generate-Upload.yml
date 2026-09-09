@@ -147,36 +147,62 @@
     # ============================================================
 
     - name: Check OpenSCAP package availability
-      ansible.builtin.command:
-        cmd: apt-cache policy libopenscap8
-      register: openscap_package
+      ansible.builtin.shell:
+        cmd: |
+          echo "=== libopenscap8 ==="
+          apt-cache policy libopenscap8
+          echo
+          echo "=== openscap-utils ==="
+          apt-cache policy openscap-utils
+      register: openscap_packages
       changed_when: false
 
     - name: Display OpenSCAP package information
       ansible.builtin.debug:
-        var: openscap_package.stdout_lines
+        var: openscap_packages.stdout_lines
 
-    - name: Verify OpenSCAP package is available
+
+    - name: Check libopenscap8 availability
+      ansible.builtin.command:
+        cmd: apt-cache policy libopenscap8
+      register: libopenscap_package
+      changed_when: false
+
+    - name: Verify libopenscap8 package is available
       ansible.builtin.assert:
         that:
-          - "'Candidate: (none)' not in openscap_package.stdout"
+          - "'Candidate: (none)' not in libopenscap_package.stdout"
         fail_msg: >-
           libopenscap8 is not available from the configured
           Ubuntu 22.04 repositories.
 
 
+    - name: Check openscap-utils availability
+      ansible.builtin.command:
+        cmd: apt-cache policy openscap-utils
+      register: openscap_utils_package
+      changed_when: false
+      failed_when: false
+
+
     # ============================================================
-    # 5. Install OpenSCAP and utilities
+    # 5. Install OpenSCAP and available utilities
     # ============================================================
 
-    - name: Install OpenSCAP and utilities
+    - name: Install OpenSCAP scanner
       ansible.builtin.apt:
         name:
           - libopenscap8
-          - openscap-utils
           - unzip
           - curl
         state: present
+
+    - name: Install openscap-utils when available
+      ansible.builtin.apt:
+        name: openscap-utils
+        state: present
+      when:
+        - "'Candidate: (none)' not in openscap_utils_package.stdout"
 
 
     # ============================================================
