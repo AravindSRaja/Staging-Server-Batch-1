@@ -136,6 +136,9 @@
     # 3. Update APT cache
     # ============================================================
 
+    # Intentionally disabled because some staging servers have
+    # long-running APT/unattended-upgrade processes.
+
 #    - name: Update APT cache
 #      ansible.builtin.apt:
 #        update_cache: true
@@ -186,7 +189,30 @@
 
 
     # ============================================================
-    # 5. Install OpenSCAP and available utilities
+    # 5. Wait for APT / DPKG locks
+    # ============================================================
+
+    - name: Wait for APT and DPKG locks to be released
+      ansible.builtin.shell:
+        cmd: |
+          while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || \
+                fuser /var/lib/dpkg/lock >/dev/null 2>&1 || \
+                fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
+            echo "APT/DPKG is currently locked. Waiting..."
+            sleep 10
+          done
+          echo "APT/DPKG locks are available."
+      register: apt_lock_wait
+      changed_when: false
+      timeout: 1800
+
+    - name: Display APT lock status
+      ansible.builtin.debug:
+        var: apt_lock_wait.stdout_lines
+
+
+    # ============================================================
+    # 6. Install OpenSCAP and available utilities
     # ============================================================
 
     - name: Install OpenSCAP scanner
@@ -206,7 +232,7 @@
 
 
     # ============================================================
-    # 6. Verify OpenSCAP
+    # 7. Verify OpenSCAP
     # ============================================================
 
     - name: Check OpenSCAP version
@@ -221,7 +247,7 @@
 
 
     # ============================================================
-    # 7. Verify oscap binary
+    # 8. Verify oscap binary
     # ============================================================
 
     - name: Check oscap binary
@@ -240,7 +266,7 @@
 
 
     # ============================================================
-    # 8. Create SSG directory
+    # 9. Create SSG directory
     # ============================================================
 
     - name: Create SSG content directory
@@ -253,7 +279,7 @@
 
 
     # ============================================================
-    # 9. Check Ubuntu 22.04 datastream
+    # 10. Check Ubuntu 22.04 datastream
     # ============================================================
 
     - name: Check Ubuntu 22.04 SSG datastream
@@ -263,7 +289,7 @@
 
 
     # ============================================================
-    # 10. Download SSG if required
+    # 11. Download SSG if required
     # ============================================================
 
     - name: Download SCAP Security Guide
@@ -276,7 +302,7 @@
 
 
     # ============================================================
-    # 11. Extract Ubuntu 22.04 datastream
+    # 12. Extract Ubuntu 22.04 datastream
     # ============================================================
 
     - name: Extract Ubuntu 22.04 SSG datastream
@@ -290,7 +316,7 @@
 
 
     # ============================================================
-    # 12. Verify datastream
+    # 13. Verify datastream
     # ============================================================
 
     - name: Verify Ubuntu 22.04 datastream
@@ -309,7 +335,7 @@
 
 
     # ============================================================
-    # 13. Verify CIS Level 1 profile
+    # 14. Verify CIS Level 1 profile
     # ============================================================
 
     - name: Check CIS Level 1 profile
@@ -328,7 +354,7 @@
 
 
     # ============================================================
-    # 14. Display scan configuration
+    # 15. Display scan configuration
     # ============================================================
 
     - name: Display scan configuration
@@ -348,7 +374,7 @@
 
 
     # ============================================================
-    # 15. Create remote OpenSCAP directory
+    # 16. Create remote OpenSCAP directory
     # ============================================================
 
     - name: Create OpenSCAP scan directory
@@ -361,7 +387,7 @@
 
 
     # ============================================================
-    # 16. Remove previous assessment files
+    # 17. Remove previous assessment files
     # ============================================================
 
     - name: Remove previous XML result
@@ -381,7 +407,7 @@
 
 
     # ============================================================
-    # 17. Run CIS Level 1 scan
+    # 18. Run CIS Level 1 scan
     # ============================================================
 
     - name: Run Ubuntu 22.04 CIS Level 1 assessment
@@ -398,7 +424,7 @@
 
 
     # ============================================================
-    # 18. Display scan output
+    # 19. Display scan output
     # ============================================================
 
     - name: Display OpenSCAP scan output
@@ -407,7 +433,7 @@
 
 
     # ============================================================
-    # 19. Display warnings/errors
+    # 20. Display warnings/errors
     # ============================================================
 
     - name: Display OpenSCAP stderr
@@ -419,7 +445,7 @@
 
 
     # ============================================================
-    # 20. Display return code
+    # 21. Display return code
     # ============================================================
 
     - name: Display OpenSCAP return code
@@ -430,7 +456,7 @@
 
 
     # ============================================================
-    # 21. Verify XML result
+    # 22. Verify XML result
     # ============================================================
 
     - name: Check XML result
@@ -440,7 +466,7 @@
 
 
     # ============================================================
-    # 22. Verify HTML report
+    # 23. Verify HTML report
     # ============================================================
 
     - name: Check HTML report
@@ -450,7 +476,7 @@
 
 
     # ============================================================
-    # 23. Validate scan artifacts
+    # 24. Validate scan artifacts
     # ============================================================
 
     - name: Verify OpenSCAP results were generated
@@ -465,7 +491,7 @@
 
 
     # ============================================================
-    # 24. Extract XCCDF TestResult ID
+    # 25. Extract XCCDF TestResult ID
     # ============================================================
 
     - name: Extract XCCDF TestResult ID
@@ -486,7 +512,7 @@
 
 
     # ============================================================
-    # 25. Verify TestResult ID
+    # 26. Verify TestResult ID
     # ============================================================
 
     - name: Verify XCCDF TestResult ID
@@ -499,7 +525,7 @@
 
 
     # ============================================================
-    # 26. Generate Bash remediation
+    # 27. Generate Bash remediation
     #
     # IMPORTANT:
     # This generates the remediation script only.
@@ -519,7 +545,7 @@
 
 
     # ============================================================
-    # 27. Verify remediation script
+    # 28. Verify remediation script
     # ============================================================
 
     - name: Check remediation script
@@ -537,7 +563,7 @@
 
 
     # ============================================================
-    # 28. Secure remediation script
+    # 29. Secure remediation script
     # ============================================================
 
     - name: Set remediation script permissions
@@ -549,7 +575,7 @@
 
 
     # ============================================================
-    # 29. Display remote artifacts
+    # 30. Display remote artifacts
     # ============================================================
 
     - name: Display generated files on remote server
@@ -571,7 +597,7 @@
 
 
     # ============================================================
-    # 30. Create artifact directory in Semaphore repository
+    # 31. Create artifact directory in Semaphore repository
     # ============================================================
 
     - name: Create GitHub artifact directory
@@ -584,7 +610,7 @@
 
 
     # ============================================================
-    # 31. Fetch XML result to Semaphore
+    # 32. Fetch XML result to Semaphore
     # ============================================================
 
     - name: Fetch XML result to Semaphore
@@ -595,7 +621,7 @@
 
 
     # ============================================================
-    # 32. Fetch HTML report to Semaphore
+    # 33. Fetch HTML report to Semaphore
     # ============================================================
 
     - name: Fetch HTML report to Semaphore
@@ -606,7 +632,7 @@
 
 
     # ============================================================
-    # 33. Fetch remediation script to Semaphore
+    # 34. Fetch remediation script to Semaphore
     # ============================================================
 
     - name: Fetch remediation script to Semaphore
@@ -617,7 +643,7 @@
 
 
     # ============================================================
-    # 34. Verify fetched files
+    # 35. Verify fetched files
     # ============================================================
 
     - name: Verify XML artifact on Semaphore
@@ -657,7 +683,7 @@
 
 
     # ============================================================
-    # 35. Display Semaphore artifact location
+    # 36. Display Semaphore artifact location
     # ============================================================
 
     - name: Display Semaphore artifact location
@@ -683,7 +709,7 @@
   post_tasks:
 
     # ============================================================
-    # 36. Verify Git repository
+    # 37. Verify Git repository
     # ============================================================
 
     - name: Get Git remote URL
@@ -707,7 +733,7 @@
 
 
     # ============================================================
-    # 37. Verify correct GitHub repository
+    # 38. Verify correct GitHub repository
     # ============================================================
 
     - name: Verify correct GitHub repository
@@ -729,7 +755,7 @@
 
 
     # ============================================================
-    # 38. Configure Git user
+    # 39. Configure Git user
     # ============================================================
 
     - name: Configure Git username
@@ -753,7 +779,7 @@
 
 
     # ============================================================
-    # 39. Check Git status
+    # 40. Check Git status
     # ============================================================
 
     - name: Check Git status
@@ -775,7 +801,7 @@
 
 
     # ============================================================
-    # 40. Add OpenSCAP artifacts
+    # 41. Add OpenSCAP artifacts
     # ============================================================
 
     - name: Add OpenSCAP artifacts to Git
@@ -789,7 +815,7 @@
 
 
     # ============================================================
-    # 41. Check staged changes
+    # 42. Check staged changes
     # ============================================================
 
     - name: Check staged OpenSCAP artifacts
@@ -811,7 +837,7 @@
 
 
     # ============================================================
-    # 42. Commit artifacts
+    # 43. Commit artifacts
     # ============================================================
 
     - name: Commit OpenSCAP artifacts
@@ -840,7 +866,7 @@
 
 
     # ============================================================
-    # 43. Authenticate and push artifacts to GitHub
+    # 44. Authenticate and push artifacts to GitHub
     # ============================================================
 
     - name: Verify GitHub token is available
@@ -908,7 +934,7 @@
 
 
     # ============================================================
-    # 44. Display GitHub upload result
+    # 45. Display GitHub upload result
     # ============================================================
 
     - name: Display GitHub upload result
@@ -934,7 +960,7 @@
 
 
     # ============================================================
-    # 45. Final status
+    # 46. Final status
     # ============================================================
 
     - name: Final assessment status
