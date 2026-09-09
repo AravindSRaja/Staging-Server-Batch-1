@@ -133,63 +133,39 @@
 
 
     # ============================================================
-    # 3. Update APT cache
-    # ============================================================
-
-    # Intentionally disabled because some staging servers have
-    # long-running APT/unattended-upgrade processes.
-
-#    - name: Update APT cache
-#      ansible.builtin.apt:
-#        update_cache: true
-#        cache_valid_time: 3600
-
-
-    # ============================================================
-    # 4. Verify OpenSCAP package availability
+    # 3. Check APT package availability
+    #
+    # NOTE:
+    # Ubuntu 22.04 uses libopenscap8.
+    # openscap-utils is NOT required for this 22.04 playbook.
     # ============================================================
 
     - name: Check OpenSCAP package availability
-      ansible.builtin.shell:
-        cmd: |
-          echo "=== libopenscap8 ==="
-          apt-cache policy libopenscap8
-          echo
-          echo "=== openscap-utils ==="
-          apt-cache policy openscap-utils
-      register: openscap_packages
+      ansible.builtin.command:
+        cmd: apt-cache policy libopenscap8
+      register: openscap_package
       changed_when: false
 
     - name: Display OpenSCAP package information
       ansible.builtin.debug:
-        var: openscap_packages.stdout_lines
+        var: openscap_package.stdout_lines
 
-
-    - name: Check libopenscap8 availability
-      ansible.builtin.command:
-        cmd: apt-cache policy libopenscap8
-      register: libopenscap_package
-      changed_when: false
-
-    - name: Verify libopenscap8 package is available
+    - name: Verify OpenSCAP package is available
       ansible.builtin.assert:
         that:
-          - "'Candidate: (none)' not in libopenscap_package.stdout"
+          - "'Candidate: (none)' not in openscap_package.stdout"
         fail_msg: >-
           libopenscap8 is not available from the configured
           Ubuntu 22.04 repositories.
 
 
-    - name: Check openscap-utils availability
-      ansible.builtin.command:
-        cmd: apt-cache policy openscap-utils
-      register: openscap_utils_package
-      changed_when: false
-      failed_when: false
-
-
     # ============================================================
-    # 5. Wait for APT / DPKG locks
+    # 4. Wait for APT / DPKG locks
+    #
+    # This prevents the OpenSCAP installation from starting while
+    # unattended-upgrades or another APT/DPKG process is active.
+    #
+    # Maximum wait: 30 minutes
     # ============================================================
 
     - name: Wait for APT and DPKG locks to be released
@@ -201,6 +177,7 @@
             echo "APT/DPKG is currently locked. Waiting..."
             sleep 10
           done
+
           echo "APT/DPKG locks are available."
       register: apt_lock_wait
       changed_when: false
@@ -212,7 +189,12 @@
 
 
     # ============================================================
-    # 6. Install OpenSCAP and available utilities
+    # 5. Install OpenSCAP scanner
+    #
+    # Ubuntu 22.04:
+    #   libopenscap8
+    #
+    # openscap-utils is intentionally NOT installed.
     # ============================================================
 
     - name: Install OpenSCAP scanner
@@ -223,16 +205,9 @@
           - curl
         state: present
 
-    - name: Install openscap-utils when available
-      ansible.builtin.apt:
-        name: openscap-utils
-        state: present
-      when:
-        - "'Candidate: (none)' not in openscap_utils_package.stdout"
-
 
     # ============================================================
-    # 7. Verify OpenSCAP
+    # 6. Verify OpenSCAP
     # ============================================================
 
     - name: Check OpenSCAP version
@@ -247,7 +222,7 @@
 
 
     # ============================================================
-    # 8. Verify oscap binary
+    # 7. Verify oscap binary
     # ============================================================
 
     - name: Check oscap binary
@@ -266,7 +241,7 @@
 
 
     # ============================================================
-    # 9. Create SSG directory
+    # 8. Create SSG directory
     # ============================================================
 
     - name: Create SSG content directory
@@ -279,7 +254,7 @@
 
 
     # ============================================================
-    # 10. Check Ubuntu 22.04 datastream
+    # 9. Check Ubuntu 22.04 datastream
     # ============================================================
 
     - name: Check Ubuntu 22.04 SSG datastream
@@ -289,7 +264,7 @@
 
 
     # ============================================================
-    # 11. Download SSG if required
+    # 10. Download SSG if required
     # ============================================================
 
     - name: Download SCAP Security Guide
@@ -302,7 +277,7 @@
 
 
     # ============================================================
-    # 12. Extract Ubuntu 22.04 datastream
+    # 11. Extract Ubuntu 22.04 datastream
     # ============================================================
 
     - name: Extract Ubuntu 22.04 SSG datastream
@@ -316,7 +291,7 @@
 
 
     # ============================================================
-    # 13. Verify datastream
+    # 12. Verify datastream
     # ============================================================
 
     - name: Verify Ubuntu 22.04 datastream
@@ -335,7 +310,7 @@
 
 
     # ============================================================
-    # 14. Verify CIS Level 1 profile
+    # 13. Verify CIS Level 1 profile
     # ============================================================
 
     - name: Check CIS Level 1 profile
@@ -354,7 +329,7 @@
 
 
     # ============================================================
-    # 15. Display scan configuration
+    # 14. Display scan configuration
     # ============================================================
 
     - name: Display scan configuration
@@ -374,7 +349,7 @@
 
 
     # ============================================================
-    # 16. Create remote OpenSCAP directory
+    # 15. Create remote OpenSCAP directory
     # ============================================================
 
     - name: Create OpenSCAP scan directory
@@ -387,7 +362,7 @@
 
 
     # ============================================================
-    # 17. Remove previous assessment files
+    # 16. Remove previous assessment files
     # ============================================================
 
     - name: Remove previous XML result
@@ -407,7 +382,7 @@
 
 
     # ============================================================
-    # 18. Run CIS Level 1 scan
+    # 17. Run CIS Level 1 scan
     # ============================================================
 
     - name: Run Ubuntu 22.04 CIS Level 1 assessment
@@ -424,7 +399,7 @@
 
 
     # ============================================================
-    # 19. Display scan output
+    # 18. Display scan output
     # ============================================================
 
     - name: Display OpenSCAP scan output
@@ -433,7 +408,7 @@
 
 
     # ============================================================
-    # 20. Display warnings/errors
+    # 19. Display warnings/errors
     # ============================================================
 
     - name: Display OpenSCAP stderr
@@ -445,7 +420,7 @@
 
 
     # ============================================================
-    # 21. Display return code
+    # 20. Display return code
     # ============================================================
 
     - name: Display OpenSCAP return code
@@ -456,7 +431,7 @@
 
 
     # ============================================================
-    # 22. Verify XML result
+    # 21. Verify XML result
     # ============================================================
 
     - name: Check XML result
@@ -466,7 +441,7 @@
 
 
     # ============================================================
-    # 23. Verify HTML report
+    # 22. Verify HTML report
     # ============================================================
 
     - name: Check HTML report
@@ -476,7 +451,7 @@
 
 
     # ============================================================
-    # 24. Validate scan artifacts
+    # 23. Validate scan artifacts
     # ============================================================
 
     - name: Verify OpenSCAP results were generated
@@ -491,7 +466,7 @@
 
 
     # ============================================================
-    # 25. Extract XCCDF TestResult ID
+    # 24. Extract XCCDF TestResult ID
     # ============================================================
 
     - name: Extract XCCDF TestResult ID
@@ -512,7 +487,7 @@
 
 
     # ============================================================
-    # 26. Verify TestResult ID
+    # 25. Verify TestResult ID
     # ============================================================
 
     - name: Verify XCCDF TestResult ID
@@ -525,7 +500,7 @@
 
 
     # ============================================================
-    # 27. Generate Bash remediation
+    # 26. Generate Bash remediation
     #
     # IMPORTANT:
     # This generates the remediation script only.
@@ -545,7 +520,7 @@
 
 
     # ============================================================
-    # 28. Verify remediation script
+    # 27. Verify remediation script
     # ============================================================
 
     - name: Check remediation script
@@ -563,7 +538,7 @@
 
 
     # ============================================================
-    # 29. Secure remediation script
+    # 28. Secure remediation script
     # ============================================================
 
     - name: Set remediation script permissions
@@ -575,7 +550,7 @@
 
 
     # ============================================================
-    # 30. Display remote artifacts
+    # 29. Display remote artifacts
     # ============================================================
 
     - name: Display generated files on remote server
@@ -597,7 +572,7 @@
 
 
     # ============================================================
-    # 31. Create artifact directory in Semaphore repository
+    # 30. Create artifact directory in Semaphore repository
     # ============================================================
 
     - name: Create GitHub artifact directory
@@ -610,7 +585,7 @@
 
 
     # ============================================================
-    # 32. Fetch XML result to Semaphore
+    # 31. Fetch XML result to Semaphore
     # ============================================================
 
     - name: Fetch XML result to Semaphore
@@ -621,7 +596,7 @@
 
 
     # ============================================================
-    # 33. Fetch HTML report to Semaphore
+    # 32. Fetch HTML report to Semaphore
     # ============================================================
 
     - name: Fetch HTML report to Semaphore
@@ -632,7 +607,7 @@
 
 
     # ============================================================
-    # 34. Fetch remediation script to Semaphore
+    # 33. Fetch remediation script to Semaphore
     # ============================================================
 
     - name: Fetch remediation script to Semaphore
@@ -643,7 +618,7 @@
 
 
     # ============================================================
-    # 35. Verify fetched files
+    # 34. Verify fetched files
     # ============================================================
 
     - name: Verify XML artifact on Semaphore
@@ -667,6 +642,10 @@
       become: false
       register: git_remediation_stat
 
+
+    # ============================================================
+    # 35. Validate all artifacts on Semaphore
+    # ============================================================
 
     - name: Validate all artifacts on Semaphore
       ansible.builtin.assert:
@@ -866,7 +845,7 @@
 
 
     # ============================================================
-    # 44. Authenticate and push artifacts to GitHub
+    # 44. Verify GitHub token
     # ============================================================
 
     - name: Verify GitHub token is available
@@ -882,6 +861,10 @@
       run_once: true
       no_log: true
 
+
+    # ============================================================
+    # 45. Create temporary GitHub GIT_ASKPASS helper
+    # ============================================================
 
     - name: Create temporary GitHub GIT_ASKPASS helper
       ansible.builtin.copy:
@@ -906,6 +889,10 @@
       no_log: true
 
 
+    # ============================================================
+    # 46. Push OpenSCAP artifacts to GitHub
+    # ============================================================
+
     - name: Push OpenSCAP artifacts to GitHub
       ansible.builtin.command:
         cmd: "git push origin {{ expected_git_branch }}"
@@ -923,6 +910,10 @@
       no_log: true
 
 
+    # ============================================================
+    # 47. Remove temporary GitHub GIT_ASKPASS helper
+    # ============================================================
+
     - name: Remove temporary GitHub GIT_ASKPASS helper
       ansible.builtin.file:
         path: "{{ git_askpass_file }}"
@@ -934,7 +925,7 @@
 
 
     # ============================================================
-    # 45. Display GitHub upload result
+    # 48. Display GitHub upload result
     # ============================================================
 
     - name: Display GitHub upload result
@@ -960,7 +951,7 @@
 
 
     # ============================================================
-    # 46. Final status
+    # 49. Final status
     # ============================================================
 
     - name: Final assessment status
@@ -977,7 +968,7 @@
           - "{{ playbook_dir }}/oscap-artifacts/"
           - ""
           - "GitHub repository:"
-          - "https://github.com/AravindSRaja/Staging-Server-Batch-1"
+          - "Staging-Server-Batch-1"
           - ""
           - "GitHub path:"
           - "oscap-artifacts/<server-IP>/"
@@ -991,7 +982,7 @@
           - "6. Artifacts retained on remote server"
           - "7. Artifacts fetched to Semaphore"
           - "8. Artifacts committed to Git"
-          - "9. Artifacts pushed to GitHub using the Semaphore GITHUB_TOKEN secret"
+          - "9. Artifacts pushed to GitHub"
           - ""
           - "IMPORTANT:"
           - "The remediation script was GENERATED ONLY."
