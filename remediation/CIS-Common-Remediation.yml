@@ -1,1 +1,85 @@
+---
+- name: Execute Common CIS Level 1 Remediation
+  hosts: ubuntu
+  become: true
+  gather_facts: true
+  serial: 1
 
+  vars:
+    remediation_script: "{{ playbook_dir }}/cis_l1_common_remediation.sh"
+    remote_script: "/home/aravind/cis_l1_common_remediation.sh"
+    remediation_log: "/home/aravind/cis_l1_common_remediation.log"
+
+  tasks:
+
+    - name: Verify remediation script exists on Ansible controller
+      ansible.builtin.stat:
+        path: "{{ remediation_script }}"
+      delegate_to: localhost
+      become: false
+      register: script_file
+
+    - name: Stop if remediation script is missing
+      ansible.builtin.assert:
+        that:
+          - script_file.stat.exists
+        fail_msg: >
+          Remediation script not found:
+          {{ remediation_script }}
+
+    - name: Copy common remediation script to server
+      ansible.builtin.copy:
+        src: "{{ remediation_script }}"
+        dest: "{{ remote_script }}"
+        owner: aravind
+        group: aravind
+        mode: "0700"
+
+    - name: Execute common CIS remediation script
+      ansible.builtin.command:
+        cmd: /bin/bash "{{ remote_script }}"
+      register: remediation_result
+      changed_when: true
+
+    - name: Save remediation execution log
+      ansible.builtin.copy:
+        content: |
+          ============================================
+          CIS Level 1 Common Remediation
+          ============================================
+          Host: {{ inventory_hostname }}
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Execution time: {{ ansible_date_time.iso8601 }}
+          Return code: {{ remediation_result.rc }}
+
+          STDOUT:
+          {{ remediation_result.stdout }}
+
+          STDERR:
+          {{ remediation_result.stderr }}
+          ============================================
+        dest: "{{ remediation_log }}"
+        owner: aravind
+        group: aravind
+        mode: "0600"
+
+    - name: Display remediation result
+      ansible.builtin.debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "Return code: {{ remediation_result.rc }}"
+          - "Remediation execution completed."
+
+    - name: Fail if remediation script failed
+      ansible.builtin.fail:
+        msg: >
+          CIS remediation script failed on {{ inventory_hostname }}.
+          Return code: {{ remediation_result.rc }}.
+          Review {{ remediation_log }}.
+      when: remediation_result.rc != 0
+
+    - name: Remove remediation script after successful execution
+      ansible.builtin.file:
+        path: "{{ remote_script }}"
+        state: absent
+      when: remediation_result.rc == 0
