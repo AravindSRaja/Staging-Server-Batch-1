@@ -4804,3 +4804,703 @@ fi
 
 # END fix for 'xccdf_org.ssgproject.content_rule_sshd_use_strong_macs'
 
+## From Final Scan Results
+
+###############################################################################
+# BEGIN fix (4 / 61) for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_dcredit'
+###############################################################################
+(>&2 echo "Remediating rule 4/61: 'xccdf_org.ssgproject.content_rule_accounts_password_pam_dcredit'"); (
+# Remediation is applicable only in certain platforms
+if dpkg-query --show --showformat='${db:Status-Status}' 'linux-base' 2>/dev/null | grep -q '^installed$' && { dpkg-query --show --showformat='${db:Status-Status}' 'libpwquality1' 2>/dev/null | grep -q '^installed$'; }; then
+
+var_password_pam_dcredit='-1'
+
+
+
+
+
+
+
+conf_name=cac_pwquality
+if [ ! -f /usr/share/pam-configs/"$conf_name" ]; then
+    cat << EOF > /usr/share/pam-configs/"$conf_name"
+Name: Pwquality password strength checking
+Default: yes
+Priority: 1025
+Conflicts: cracklib, pwquality
+Password-Type: Primary
+Password:
+    requisite                   pam_pwquality.so
+EOF
+fi
+
+DEBIAN_FRONTEND=noninteractive pam-auth-update
+
+
+
+
+
+
+# Strip any search characters in the key arg so that the key can be replaced without
+# adding any search characters to the config file.
+stripped_key=$(sed 's/[\^=\$,;+]*//g' <<< "^dcredit")
+
+# shellcheck disable=SC2059
+printf -v formatted_output "%s = %s" "$stripped_key" "$var_password_pam_dcredit"
+
+# If the key exists, change it. Otherwise, add it to the config_file.
+# We search for the key string followed by a word boundary (matched by \>),
+# so if we search for 'setting', 'setting2' won't match.
+if LC_ALL=C grep -q -m 1 -i -e "^dcredit\\>" "/etc/security/pwquality.conf"; then
+    escaped_formatted_output=$(sed -e 's|/|\\/|g' <<< "$formatted_output")
+    LC_ALL=C sed -i --follow-symlinks "s/^dcredit\\>.*/$escaped_formatted_output/gi" "/etc/security/pwquality.conf"
+else
+    if [[ -s "/etc/security/pwquality.conf" ]] && [[ -n "$(tail -c 1 -- "/etc/security/pwquality.conf" || true)" ]]; then
+        LC_ALL=C sed -i --follow-symlinks '$a'\\ "/etc/security/pwquality.conf"
+    fi
+    printf '%s\n' "$formatted_output" >> "/etc/security/pwquality.conf"
+fi
+
+else
+    >&2 echo 'Remediation is not applicable, nothing was done'
+fi
+
+) # END fix for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_dcredit'
+
+###############################################################################
+# BEGIN fix (5 / 61) for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_dictcheck'
+###############################################################################
+(>&2 echo "Remediating rule 5/61: 'xccdf_org.ssgproject.content_rule_accounts_password_pam_dictcheck'"); (
+# Remediation is applicable only in certain platforms
+if dpkg-query --show --showformat='${db:Status-Status}' 'linux-base' 2>/dev/null | grep -q '^installed$' && { dpkg-query --show --showformat='${db:Status-Status}' 'libpwquality1' 2>/dev/null | grep -q '^installed$'; }; then
+
+var_password_pam_dictcheck='1'
+
+
+
+
+
+
+
+conf_name=cac_pwquality
+if [ ! -f /usr/share/pam-configs/"$conf_name" ]; then
+    cat << EOF > /usr/share/pam-configs/"$conf_name"
+Name: Pwquality password strength checking
+Default: yes
+Priority: 1025
+Conflicts: cracklib, pwquality
+Password-Type: Primary
+Password:
+    requisite                   pam_pwquality.so
+EOF
+fi
+
+DEBIAN_FRONTEND=noninteractive pam-auth-update
+
+
+
+
+
+
+# Strip any search characters in the key arg so that the key can be replaced without
+# adding any search characters to the config file.
+stripped_key=$(sed 's/[\^=\$,;+]*//g' <<< "^dictcheck")
+
+# shellcheck disable=SC2059
+printf -v formatted_output "%s = %s" "$stripped_key" "$var_password_pam_dictcheck"
+
+# If the key exists, change it. Otherwise, add it to the config_file.
+# We search for the key string followed by a word boundary (matched by \>),
+# so if we search for 'setting', 'setting2' won't match.
+if LC_ALL=C grep -q -m 1 -i -e "^dictcheck\\>" "/etc/security/pwquality.conf"; then
+    escaped_formatted_output=$(sed -e 's|/|\\/|g' <<< "$formatted_output")
+    LC_ALL=C sed -i --follow-symlinks "s/^dictcheck\\>.*/$escaped_formatted_output/gi" "/etc/security/pwquality.conf"
+else
+    if [[ -s "/etc/security/pwquality.conf" ]] && [[ -n "$(tail -c 1 -- "/etc/security/pwquality.conf" || true)" ]]; then
+        LC_ALL=C sed -i --follow-symlinks '$a'\\ "/etc/security/pwquality.conf"
+    fi
+    printf '%s\n' "$formatted_output" >> "/etc/security/pwquality.conf"
+fi
+
+else
+    >&2 echo 'Remediation is not applicable, nothing was done'
+fi
+
+) # END fix for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_dictcheck'
+
+###############################################################################
+# BEGIN fix (6 / 61) for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_difok'
+###############################################################################
+(>&2 echo "Remediating rule 6/61: 'xccdf_org.ssgproject.content_rule_accounts_password_pam_difok'"); (
+# Remediation is applicable only in certain platforms
+if dpkg-query --show --showformat='${db:Status-Status}' 'linux-base' 2>/dev/null | grep -q '^installed$' && { dpkg-query --show --showformat='${db:Status-Status}' 'libpwquality1' 2>/dev/null | grep -q '^installed$'; }; then
+
+var_password_pam_difok='2'
+
+
+
+
+
+
+
+conf_name=cac_pwquality
+if [ ! -f /usr/share/pam-configs/"$conf_name" ]; then
+    cat << EOF > /usr/share/pam-configs/"$conf_name"
+Name: Pwquality password strength checking
+Default: yes
+Priority: 1025
+Conflicts: cracklib, pwquality
+Password-Type: Primary
+Password:
+    requisite                   pam_pwquality.so
+EOF
+fi
+
+DEBIAN_FRONTEND=noninteractive pam-auth-update
+
+
+
+
+
+
+# Strip any search characters in the key arg so that the key can be replaced without
+# adding any search characters to the config file.
+stripped_key=$(sed 's/[\^=\$,;+]*//g' <<< "^difok")
+
+# shellcheck disable=SC2059
+printf -v formatted_output "%s = %s" "$stripped_key" "$var_password_pam_difok"
+
+# If the key exists, change it. Otherwise, add it to the config_file.
+# We search for the key string followed by a word boundary (matched by \>),
+# so if we search for 'setting', 'setting2' won't match.
+if LC_ALL=C grep -q -m 1 -i -e "^difok\\>" "/etc/security/pwquality.conf"; then
+    escaped_formatted_output=$(sed -e 's|/|\\/|g' <<< "$formatted_output")
+    LC_ALL=C sed -i --follow-symlinks "s/^difok\\>.*/$escaped_formatted_output/gi" "/etc/security/pwquality.conf"
+else
+    if [[ -s "/etc/security/pwquality.conf" ]] && [[ -n "$(tail -c 1 -- "/etc/security/pwquality.conf" || true)" ]]; then
+        LC_ALL=C sed -i --follow-symlinks '$a'\\ "/etc/security/pwquality.conf"
+    fi
+    printf '%s\n' "$formatted_output" >> "/etc/security/pwquality.conf"
+fi
+
+else
+    >&2 echo 'Remediation is not applicable, nothing was done'
+fi
+
+) # END fix for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_difok'
+
+###############################################################################
+# BEGIN fix (7 / 61) for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_enforce_root'
+###############################################################################
+(>&2 echo "Remediating rule 7/61: 'xccdf_org.ssgproject.content_rule_accounts_password_pam_enforce_root'"); (
+# Remediation is applicable only in certain platforms
+if dpkg-query --show --showformat='${db:Status-Status}' 'linux-base' 2>/dev/null | grep -q '^installed$' && { dpkg-query --show --showformat='${db:Status-Status}' 'libpwquality1' 2>/dev/null | grep -q '^installed$'; }; then
+
+if [ -e "/etc/security/pwquality.conf" ] ; then
+    
+    LC_ALL=C sed -i "/^\s*enforce_for_root/Id" "/etc/security/pwquality.conf"
+else
+    touch "/etc/security/pwquality.conf"
+fi
+# make sure file has newline at the end
+sed -i -e '$a\' "/etc/security/pwquality.conf"
+
+cp "/etc/security/pwquality.conf" "/etc/security/pwquality.conf.bak"
+# Insert at the end of the file
+printf '%s\n' "enforce_for_root" >> "/etc/security/pwquality.conf"
+# Clean up after ourselves.
+rm "/etc/security/pwquality.conf.bak"
+
+else
+    >&2 echo 'Remediation is not applicable, nothing was done'
+fi
+
+) # END fix for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_enforce_root'
+
+###############################################################################
+# BEGIN fix (8 / 61) for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_enforcing'
+###############################################################################
+(>&2 echo "Remediating rule 8/61: 'xccdf_org.ssgproject.content_rule_accounts_password_pam_enforcing'"); (
+# Remediation is applicable only in certain platforms
+if dpkg-query --show --showformat='${db:Status-Status}' 'linux-base' 2>/dev/null | grep -q '^installed$' && { dpkg-query --show --showformat='${db:Status-Status}' 'libpwquality1' 2>/dev/null | grep -q '^installed$'; }; then
+
+var_password_pam_enforcing='1'
+
+
+
+
+
+
+
+conf_name=cac_pwquality
+if [ ! -f /usr/share/pam-configs/"$conf_name" ]; then
+    cat << EOF > /usr/share/pam-configs/"$conf_name"
+Name: Pwquality password strength checking
+Default: yes
+Priority: 1025
+Conflicts: cracklib, pwquality
+Password-Type: Primary
+Password:
+    requisite                   pam_pwquality.so
+EOF
+fi
+
+DEBIAN_FRONTEND=noninteractive pam-auth-update
+
+
+
+
+
+
+# Strip any search characters in the key arg so that the key can be replaced without
+# adding any search characters to the config file.
+stripped_key=$(sed 's/[\^=\$,;+]*//g' <<< "^enforcing")
+
+# shellcheck disable=SC2059
+printf -v formatted_output "%s = %s" "$stripped_key" "$var_password_pam_enforcing"
+
+# If the key exists, change it. Otherwise, add it to the config_file.
+# We search for the key string followed by a word boundary (matched by \>),
+# so if we search for 'setting', 'setting2' won't match.
+if LC_ALL=C grep -q -m 1 -i -e "^enforcing\\>" "/etc/security/pwquality.conf"; then
+    escaped_formatted_output=$(sed -e 's|/|\\/|g' <<< "$formatted_output")
+    LC_ALL=C sed -i --follow-symlinks "s/^enforcing\\>.*/$escaped_formatted_output/gi" "/etc/security/pwquality.conf"
+else
+    if [[ -s "/etc/security/pwquality.conf" ]] && [[ -n "$(tail -c 1 -- "/etc/security/pwquality.conf" || true)" ]]; then
+        LC_ALL=C sed -i --follow-symlinks '$a'\\ "/etc/security/pwquality.conf"
+    fi
+    printf '%s\n' "$formatted_output" >> "/etc/security/pwquality.conf"
+fi
+
+else
+    >&2 echo 'Remediation is not applicable, nothing was done'
+fi
+
+) # END fix for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_enforcing'
+
+###############################################################################
+# BEGIN fix (9 / 61) for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_lcredit'
+###############################################################################
+(>&2 echo "Remediating rule 9/61: 'xccdf_org.ssgproject.content_rule_accounts_password_pam_lcredit'"); (
+# Remediation is applicable only in certain platforms
+if dpkg-query --show --showformat='${db:Status-Status}' 'linux-base' 2>/dev/null | grep -q '^installed$' && { dpkg-query --show --showformat='${db:Status-Status}' 'libpwquality1' 2>/dev/null | grep -q '^installed$'; }; then
+
+var_password_pam_lcredit='-1'
+
+
+
+
+
+
+
+conf_name=cac_pwquality
+if [ ! -f /usr/share/pam-configs/"$conf_name" ]; then
+    cat << EOF > /usr/share/pam-configs/"$conf_name"
+Name: Pwquality password strength checking
+Default: yes
+Priority: 1025
+Conflicts: cracklib, pwquality
+Password-Type: Primary
+Password:
+    requisite                   pam_pwquality.so
+EOF
+fi
+
+DEBIAN_FRONTEND=noninteractive pam-auth-update
+
+
+
+
+
+
+# Strip any search characters in the key arg so that the key can be replaced without
+# adding any search characters to the config file.
+stripped_key=$(sed 's/[\^=\$,;+]*//g' <<< "^lcredit")
+
+# shellcheck disable=SC2059
+printf -v formatted_output "%s = %s" "$stripped_key" "$var_password_pam_lcredit"
+
+# If the key exists, change it. Otherwise, add it to the config_file.
+# We search for the key string followed by a word boundary (matched by \>),
+# so if we search for 'setting', 'setting2' won't match.
+if LC_ALL=C grep -q -m 1 -i -e "^lcredit\\>" "/etc/security/pwquality.conf"; then
+    escaped_formatted_output=$(sed -e 's|/|\\/|g' <<< "$formatted_output")
+    LC_ALL=C sed -i --follow-symlinks "s/^lcredit\\>.*/$escaped_formatted_output/gi" "/etc/security/pwquality.conf"
+else
+    if [[ -s "/etc/security/pwquality.conf" ]] && [[ -n "$(tail -c 1 -- "/etc/security/pwquality.conf" || true)" ]]; then
+        LC_ALL=C sed -i --follow-symlinks '$a'\\ "/etc/security/pwquality.conf"
+    fi
+    printf '%s\n' "$formatted_output" >> "/etc/security/pwquality.conf"
+fi
+
+else
+    >&2 echo 'Remediation is not applicable, nothing was done'
+fi
+
+) # END fix for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_lcredit'
+
+###############################################################################
+# BEGIN fix (10 / 61) for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_maxrepeat'
+###############################################################################
+(>&2 echo "Remediating rule 10/61: 'xccdf_org.ssgproject.content_rule_accounts_password_pam_maxrepeat'"); (
+# Remediation is applicable only in certain platforms
+if dpkg-query --show --showformat='${db:Status-Status}' 'linux-base' 2>/dev/null | grep -q '^installed$' && { dpkg-query --show --showformat='${db:Status-Status}' 'libpwquality1' 2>/dev/null | grep -q '^installed$'; }; then
+
+var_password_pam_maxrepeat='3'
+
+
+
+
+
+
+
+conf_name=cac_pwquality
+if [ ! -f /usr/share/pam-configs/"$conf_name" ]; then
+    cat << EOF > /usr/share/pam-configs/"$conf_name"
+Name: Pwquality password strength checking
+Default: yes
+Priority: 1025
+Conflicts: cracklib, pwquality
+Password-Type: Primary
+Password:
+    requisite                   pam_pwquality.so
+EOF
+fi
+
+DEBIAN_FRONTEND=noninteractive pam-auth-update
+
+
+
+
+
+
+# Strip any search characters in the key arg so that the key can be replaced without
+# adding any search characters to the config file.
+stripped_key=$(sed 's/[\^=\$,;+]*//g' <<< "^maxrepeat")
+
+# shellcheck disable=SC2059
+printf -v formatted_output "%s = %s" "$stripped_key" "$var_password_pam_maxrepeat"
+
+# If the key exists, change it. Otherwise, add it to the config_file.
+# We search for the key string followed by a word boundary (matched by \>),
+# so if we search for 'setting', 'setting2' won't match.
+if LC_ALL=C grep -q -m 1 -i -e "^maxrepeat\\>" "/etc/security/pwquality.conf"; then
+    escaped_formatted_output=$(sed -e 's|/|\\/|g' <<< "$formatted_output")
+    LC_ALL=C sed -i --follow-symlinks "s/^maxrepeat\\>.*/$escaped_formatted_output/gi" "/etc/security/pwquality.conf"
+else
+    if [[ -s "/etc/security/pwquality.conf" ]] && [[ -n "$(tail -c 1 -- "/etc/security/pwquality.conf" || true)" ]]; then
+        LC_ALL=C sed -i --follow-symlinks '$a'\\ "/etc/security/pwquality.conf"
+    fi
+    printf '%s\n' "$formatted_output" >> "/etc/security/pwquality.conf"
+fi
+
+else
+    >&2 echo 'Remediation is not applicable, nothing was done'
+fi
+
+) # END fix for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_maxrepeat'
+
+###############################################################################
+# BEGIN fix (11 / 61) for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_maxsequence'
+###############################################################################
+(>&2 echo "Remediating rule 11/61: 'xccdf_org.ssgproject.content_rule_accounts_password_pam_maxsequence'"); (
+# Remediation is applicable only in certain platforms
+if dpkg-query --show --showformat='${db:Status-Status}' 'linux-base' 2>/dev/null | grep -q '^installed$' && { dpkg-query --show --showformat='${db:Status-Status}' 'libpwquality1' 2>/dev/null | grep -q '^installed$'; }; then
+
+var_password_pam_maxsequence='3'
+
+
+
+
+
+
+
+conf_name=cac_pwquality
+if [ ! -f /usr/share/pam-configs/"$conf_name" ]; then
+    cat << EOF > /usr/share/pam-configs/"$conf_name"
+Name: Pwquality password strength checking
+Default: yes
+Priority: 1025
+Conflicts: cracklib, pwquality
+Password-Type: Primary
+Password:
+    requisite                   pam_pwquality.so
+EOF
+fi
+
+DEBIAN_FRONTEND=noninteractive pam-auth-update
+
+
+
+
+
+
+# Strip any search characters in the key arg so that the key can be replaced without
+# adding any search characters to the config file.
+stripped_key=$(sed 's/[\^=\$,;+]*//g' <<< "^maxsequence")
+
+# shellcheck disable=SC2059
+printf -v formatted_output "%s = %s" "$stripped_key" "$var_password_pam_maxsequence"
+
+# If the key exists, change it. Otherwise, add it to the config_file.
+# We search for the key string followed by a word boundary (matched by \>),
+# so if we search for 'setting', 'setting2' won't match.
+if LC_ALL=C grep -q -m 1 -i -e "^maxsequence\\>" "/etc/security/pwquality.conf"; then
+    escaped_formatted_output=$(sed -e 's|/|\\/|g' <<< "$formatted_output")
+    LC_ALL=C sed -i --follow-symlinks "s/^maxsequence\\>.*/$escaped_formatted_output/gi" "/etc/security/pwquality.conf"
+else
+    if [[ -s "/etc/security/pwquality.conf" ]] && [[ -n "$(tail -c 1 -- "/etc/security/pwquality.conf" || true)" ]]; then
+        LC_ALL=C sed -i --follow-symlinks '$a'\\ "/etc/security/pwquality.conf"
+    fi
+    printf '%s\n' "$formatted_output" >> "/etc/security/pwquality.conf"
+fi
+
+else
+    >&2 echo 'Remediation is not applicable, nothing was done'
+fi
+
+) # END fix for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_maxsequence'
+
+###############################################################################
+# BEGIN fix (12 / 61) for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_minclass'
+###############################################################################
+(>&2 echo "Remediating rule 12/61: 'xccdf_org.ssgproject.content_rule_accounts_password_pam_minclass'"); (
+# Remediation is applicable only in certain platforms
+if dpkg-query --show --showformat='${db:Status-Status}' 'linux-base' 2>/dev/null | grep -q '^installed$' && { dpkg-query --show --showformat='${db:Status-Status}' 'libpwquality1' 2>/dev/null | grep -q '^installed$'; }; then
+
+var_password_pam_minclass='4'
+
+
+
+
+
+
+
+conf_name=cac_pwquality
+if [ ! -f /usr/share/pam-configs/"$conf_name" ]; then
+    cat << EOF > /usr/share/pam-configs/"$conf_name"
+Name: Pwquality password strength checking
+Default: yes
+Priority: 1025
+Conflicts: cracklib, pwquality
+Password-Type: Primary
+Password:
+    requisite                   pam_pwquality.so
+EOF
+fi
+
+DEBIAN_FRONTEND=noninteractive pam-auth-update
+
+
+
+
+
+
+# Strip any search characters in the key arg so that the key can be replaced without
+# adding any search characters to the config file.
+stripped_key=$(sed 's/[\^=\$,;+]*//g' <<< "^minclass")
+
+# shellcheck disable=SC2059
+printf -v formatted_output "%s = %s" "$stripped_key" "$var_password_pam_minclass"
+
+# If the key exists, change it. Otherwise, add it to the config_file.
+# We search for the key string followed by a word boundary (matched by \>),
+# so if we search for 'setting', 'setting2' won't match.
+if LC_ALL=C grep -q -m 1 -i -e "^minclass\\>" "/etc/security/pwquality.conf"; then
+    escaped_formatted_output=$(sed -e 's|/|\\/|g' <<< "$formatted_output")
+    LC_ALL=C sed -i --follow-symlinks "s/^minclass\\>.*/$escaped_formatted_output/gi" "/etc/security/pwquality.conf"
+else
+    if [[ -s "/etc/security/pwquality.conf" ]] && [[ -n "$(tail -c 1 -- "/etc/security/pwquality.conf" || true)" ]]; then
+        LC_ALL=C sed -i --follow-symlinks '$a'\\ "/etc/security/pwquality.conf"
+    fi
+    printf '%s\n' "$formatted_output" >> "/etc/security/pwquality.conf"
+fi
+
+else
+    >&2 echo 'Remediation is not applicable, nothing was done'
+fi
+
+) # END fix for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_minclass'
+
+###############################################################################
+# BEGIN fix (13 / 61) for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_minlen'
+###############################################################################
+(>&2 echo "Remediating rule 13/61: 'xccdf_org.ssgproject.content_rule_accounts_password_pam_minlen'"); (
+# Remediation is applicable only in certain platforms
+if dpkg-query --show --showformat='${db:Status-Status}' 'linux-base' 2>/dev/null | grep -q '^installed$' && { dpkg-query --show --showformat='${db:Status-Status}' 'libpwquality1' 2>/dev/null | grep -q '^installed$'; }; then
+
+var_password_pam_minlen='14'
+
+
+
+
+
+
+
+conf_name=cac_pwquality
+if [ ! -f /usr/share/pam-configs/"$conf_name" ]; then
+    cat << EOF > /usr/share/pam-configs/"$conf_name"
+Name: Pwquality password strength checking
+Default: yes
+Priority: 1025
+Conflicts: cracklib, pwquality
+Password-Type: Primary
+Password:
+    requisite                   pam_pwquality.so
+EOF
+fi
+
+DEBIAN_FRONTEND=noninteractive pam-auth-update
+
+
+
+
+
+
+# Strip any search characters in the key arg so that the key can be replaced without
+# adding any search characters to the config file.
+stripped_key=$(sed 's/[\^=\$,;+]*//g' <<< "^minlen")
+
+# shellcheck disable=SC2059
+printf -v formatted_output "%s = %s" "$stripped_key" "$var_password_pam_minlen"
+
+# If the key exists, change it. Otherwise, add it to the config_file.
+# We search for the key string followed by a word boundary (matched by \>),
+# so if we search for 'setting', 'setting2' won't match.
+if LC_ALL=C grep -q -m 1 -i -e "^minlen\\>" "/etc/security/pwquality.conf"; then
+    escaped_formatted_output=$(sed -e 's|/|\\/|g' <<< "$formatted_output")
+    LC_ALL=C sed -i --follow-symlinks "s/^minlen\\>.*/$escaped_formatted_output/gi" "/etc/security/pwquality.conf"
+else
+    if [[ -s "/etc/security/pwquality.conf" ]] && [[ -n "$(tail -c 1 -- "/etc/security/pwquality.conf" || true)" ]]; then
+        LC_ALL=C sed -i --follow-symlinks '$a'\\ "/etc/security/pwquality.conf"
+    fi
+    printf '%s\n' "$formatted_output" >> "/etc/security/pwquality.conf"
+fi
+
+else
+    >&2 echo 'Remediation is not applicable, nothing was done'
+fi
+
+) # END fix for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_minlen'
+
+###############################################################################
+# BEGIN fix (14 / 61) for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_ocredit'
+###############################################################################
+(>&2 echo "Remediating rule 14/61: 'xccdf_org.ssgproject.content_rule_accounts_password_pam_ocredit'"); (
+# Remediation is applicable only in certain platforms
+if dpkg-query --show --showformat='${db:Status-Status}' 'linux-base' 2>/dev/null | grep -q '^installed$' && { dpkg-query --show --showformat='${db:Status-Status}' 'libpwquality1' 2>/dev/null | grep -q '^installed$'; }; then
+
+var_password_pam_ocredit='-1'
+
+
+
+
+
+
+
+conf_name=cac_pwquality
+if [ ! -f /usr/share/pam-configs/"$conf_name" ]; then
+    cat << EOF > /usr/share/pam-configs/"$conf_name"
+Name: Pwquality password strength checking
+Default: yes
+Priority: 1025
+Conflicts: cracklib, pwquality
+Password-Type: Primary
+Password:
+    requisite                   pam_pwquality.so
+EOF
+fi
+
+DEBIAN_FRONTEND=noninteractive pam-auth-update
+
+
+
+
+
+
+# Strip any search characters in the key arg so that the key can be replaced without
+# adding any search characters to the config file.
+stripped_key=$(sed 's/[\^=\$,;+]*//g' <<< "^ocredit")
+
+# shellcheck disable=SC2059
+printf -v formatted_output "%s = %s" "$stripped_key" "$var_password_pam_ocredit"
+
+# If the key exists, change it. Otherwise, add it to the config_file.
+# We search for the key string followed by a word boundary (matched by \>),
+# so if we search for 'setting', 'setting2' won't match.
+if LC_ALL=C grep -q -m 1 -i -e "^ocredit\\>" "/etc/security/pwquality.conf"; then
+    escaped_formatted_output=$(sed -e 's|/|\\/|g' <<< "$formatted_output")
+    LC_ALL=C sed -i --follow-symlinks "s/^ocredit\\>.*/$escaped_formatted_output/gi" "/etc/security/pwquality.conf"
+else
+    if [[ -s "/etc/security/pwquality.conf" ]] && [[ -n "$(tail -c 1 -- "/etc/security/pwquality.conf" || true)" ]]; then
+        LC_ALL=C sed -i --follow-symlinks '$a'\\ "/etc/security/pwquality.conf"
+    fi
+    printf '%s\n' "$formatted_output" >> "/etc/security/pwquality.conf"
+fi
+
+else
+    >&2 echo 'Remediation is not applicable, nothing was done'
+fi
+
+) # END fix for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_ocredit'
+
+###############################################################################
+# BEGIN fix (15 / 61) for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_ucredit'
+###############################################################################
+(>&2 echo "Remediating rule 15/61: 'xccdf_org.ssgproject.content_rule_accounts_password_pam_ucredit'"); (
+# Remediation is applicable only in certain platforms
+if dpkg-query --show --showformat='${db:Status-Status}' 'linux-base' 2>/dev/null | grep -q '^installed$' && { dpkg-query --show --showformat='${db:Status-Status}' 'libpwquality1' 2>/dev/null | grep -q '^installed$'; }; then
+
+var_password_pam_ucredit='-1'
+
+
+
+
+
+
+
+conf_name=cac_pwquality
+if [ ! -f /usr/share/pam-configs/"$conf_name" ]; then
+    cat << EOF > /usr/share/pam-configs/"$conf_name"
+Name: Pwquality password strength checking
+Default: yes
+Priority: 1025
+Conflicts: cracklib, pwquality
+Password-Type: Primary
+Password:
+    requisite                   pam_pwquality.so
+EOF
+fi
+
+DEBIAN_FRONTEND=noninteractive pam-auth-update
+
+
+
+
+
+
+# Strip any search characters in the key arg so that the key can be replaced without
+# adding any search characters to the config file.
+stripped_key=$(sed 's/[\^=\$,;+]*//g' <<< "^ucredit")
+
+# shellcheck disable=SC2059
+printf -v formatted_output "%s = %s" "$stripped_key" "$var_password_pam_ucredit"
+
+# If the key exists, change it. Otherwise, add it to the config_file.
+# We search for the key string followed by a word boundary (matched by \>),
+# so if we search for 'setting', 'setting2' won't match.
+if LC_ALL=C grep -q -m 1 -i -e "^ucredit\\>" "/etc/security/pwquality.conf"; then
+    escaped_formatted_output=$(sed -e 's|/|\\/|g' <<< "$formatted_output")
+    LC_ALL=C sed -i --follow-symlinks "s/^ucredit\\>.*/$escaped_formatted_output/gi" "/etc/security/pwquality.conf"
+else
+    if [[ -s "/etc/security/pwquality.conf" ]] && [[ -n "$(tail -c 1 -- "/etc/security/pwquality.conf" || true)" ]]; then
+        LC_ALL=C sed -i --follow-symlinks '$a'\\ "/etc/security/pwquality.conf"
+    fi
+    printf '%s\n' "$formatted_output" >> "/etc/security/pwquality.conf"
+fi
+
+else
+    >&2 echo 'Remediation is not applicable, nothing was done'
+fi
+
+) # END fix for 'xccdf_org.ssgproject.content_rule_accounts_password_pam_ucredit'
