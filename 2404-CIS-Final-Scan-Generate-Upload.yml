@@ -1,1 +1,427 @@
+---
+- name: Final CIS Level 1 Assessment - Ubuntu 24.04
+  hosts: ubuntu
+  become: true
+  become_method: sudo
+  become_user: root
+  gather_facts: true
+  serial: 1
 
+  vars:
+
+    # ============================================================
+    # OpenSCAP configuration
+    # ============================================================
+
+    datastream: "/usr/share/xml/scap/ssg/content/ssg-ubuntu2404-ds.xml"
+
+    profile: "xccdf_org.ssgproject.content_profile_cis_level1_server"
+
+    # ============================================================
+    # Remote temporary files
+    # ============================================================
+
+    remote_results: "/tmp/cis-final-results.xml"
+    remote_report: "/tmp/cis-final-report.html"
+
+    # ============================================================
+    # Local repository location
+    # ============================================================
+
+    final_artifact_dir: "{{ playbook_dir }}/Final-Scan/{{ inventory_hostname }}"
+
+    # ============================================================
+    # GitHub repository
+    # ============================================================
+
+    github_repo: "https://github.com/AravindSRaja/Staging-Server-Batch-1.git"
+    github_branch: "main"
+
+
+  tasks:
+
+    # ============================================================
+    # 1. Verify effective privilege
+    # ============================================================
+
+    - name: Check effective UID
+      ansible.builtin.command:
+        cmd: id -u
+      register: effective_uid
+      changed_when: false
+
+    - name: Verify Ansible is running as root
+      ansible.builtin.assert:
+        that:
+          - effective_uid.stdout | trim == "0"
+        fail_msg: >
+          SAFETY CHECK FAILED.
+          Ansible is not running as root on {{ inventory_hostname }}.
+          Effective UID: {{ effective_uid.stdout | trim }}.
+        success_msg: >
+          Privilege check passed.
+          Ansible is running as root on {{ inventory_hostname }}.
+
+
+    # ============================================================
+    # 2. Display server information
+    # ============================================================
+
+    - name: Display target information
+      ansible.builtin.debug:
+        msg:
+          - "============================================================"
+          - "FINAL CIS LEVEL 1 ASSESSMENT"
+          - "============================================================"
+          - "Host: {{ inventory_hostname }}"
+          - "Hostname: {{ ansible_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Kernel: {{ ansible_kernel }}"
+          - "Effective UID: {{ effective_uid.stdout | trim }}"
+          - "Datastream: {{ datastream }}"
+          - "Profile: {{ profile }}"
+          - "============================================================"
+
+
+    # ============================================================
+    # 3. Verify OpenSCAP installation
+    # ============================================================
+
+    - name: Check OpenSCAP version
+      ansible.builtin.command:
+        cmd: oscap --version
+      register: oscap_version
+      changed_when: false
+
+    - name: Display OpenSCAP version
+      ansible.builtin.debug:
+        msg: "{{ oscap_version.stdout_lines }}"
+
+
+    # ============================================================
+    # 4. Verify SCAP datastream
+    # ============================================================
+
+    - name: Check Ubuntu 24.04 SCAP datastream
+      ansible.builtin.stat:
+        path: "{{ datastream }}"
+      register: datastream_status
+
+    - name: Verify SCAP datastream exists
+      ansible.builtin.assert:
+        that:
+          - datastream_status.stat.exists
+          - datastream_status.stat.isreg
+        fail_msg: >
+          Ubuntu 24.04 SCAP datastream was not found:
+          {{ datastream }}
+        success_msg: >
+          Ubuntu 24.04 SCAP datastream found.
+
+
+    # ============================================================
+    # 5. Verify target is Ubuntu 24.04
+    # ============================================================
+
+    - name: Verify Ubuntu version
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version is version('24.04', '==')
+        fail_msg: >
+          This playbook is specifically for Ubuntu 24.04.
+          Detected:
+          {{ ansible_distribution }}
+          {{ ansible_distribution_version }}
+        success_msg: >
+          Ubuntu 24.04 confirmed.
+
+
+    # ============================================================
+    # 6. Remove old temporary scan files
+    # ============================================================
+
+    - name: Remove previous temporary scan results
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ remote_results }}"
+        - "{{ remote_report }}"
+
+
+    # ============================================================
+    # 7. Run FINAL CIS Level 1 assessment
+    # ============================================================
+
+    - name: Run final CIS Level 1 OpenSCAP assessment
+      ansible.builtin.command:
+        cmd: >
+          oscap xccdf eval
+          --profile {{ profile }}
+          --results {{ remote_results }}
+          --report {{ remote_report }}
+          {{ datastream }}
+      register: scan_result
+      changed_when: false
+      failed_when: false
+
+    - name: Display OpenSCAP scan return code
+      ansible.builtin.debug:
+        msg:
+          - "============================================================"
+          - "OpenSCAP FINAL SCAN COMPLETED"
+          - "Host: {{ inventory_hostname }}"
+          - "Return code: {{ scan_result.rc }}"
+          - "============================================================"
+          - "NOTE:"
+          - "0 = all evaluated rules passed"
+          - "2 = one or more rules failed/unknown"
+          - "1 = evaluation error"
+          - "============================================================"
+
+
+    # ============================================================
+    # 8. Verify results were generated
+    # ============================================================
+
+    - name: Check final XML result
+      ansible.builtin.stat:
+        path: "{{ remote_results }}"
+      register: remote_results_status
+
+    - name: Check final HTML report
+      ansible.builtin.stat:
+        path: "{{ remote_report }}"
+      register: remote_report_status
+
+    - name: Verify final scan artifacts
+      ansible.builtin.assert:
+        that:
+          - remote_results_status.stat.exists
+          - remote_results_status.stat.size > 0
+          - remote_report_status.stat.exists
+          - remote_report_status.stat.size > 0
+        fail_msg: >
+          Final OpenSCAP artifacts were not generated correctly
+          on {{ inventory_hostname }}.
+        success_msg: >
+          Final XML and HTML report generated successfully.
+
+
+    # ============================================================
+    # 9. Create Final-Scan directory in repository
+    # ============================================================
+
+    - name: Create local final scan artifact directory
+      ansible.builtin.file:
+        path: "{{ final_artifact_dir }}"
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+      become: false
+
+
+    # ============================================================
+    # 10. Fetch XML result from server
+    # ============================================================
+
+    - name: Fetch final XML result
+      ansible.builtin.fetch:
+        src: "{{ remote_results }}"
+        dest: "{{ final_artifact_dir }}/final-xccdf-results.xml"
+        flat: true
+
+
+    # ============================================================
+    # 11. Fetch HTML report from server
+    # ============================================================
+
+    - name: Fetch final HTML report
+      ansible.builtin.fetch:
+        src: "{{ remote_report }}"
+        dest: "{{ final_artifact_dir }}/final-report.html"
+        flat: true
+
+
+    # ============================================================
+    # 12. Verify local artifacts
+    # ============================================================
+
+    - name: Verify local final XML
+      ansible.builtin.stat:
+        path: "{{ final_artifact_dir }}/final-xccdf-results.xml"
+      register: local_final_xml
+      delegate_to: localhost
+      become: false
+
+    - name: Verify local final HTML
+      ansible.builtin.stat:
+        path: "{{ final_artifact_dir }}/final-report.html"
+      register: local_final_html
+      delegate_to: localhost
+      become: false
+
+    - name: Verify downloaded artifacts
+      ansible.builtin.assert:
+        that:
+          - local_final_xml.stat.exists
+          - local_final_xml.stat.size > 0
+          - local_final_html.stat.exists
+          - local_final_html.stat.size > 0
+        fail_msg: >
+          Final scan artifacts were not downloaded correctly
+          to the Semaphore controller.
+        success_msg: >
+          Final scan artifacts successfully downloaded.
+
+
+    # ============================================================
+    # 13. Display artifact location
+    # ============================================================
+
+    - name: Display final artifact location
+      ansible.builtin.debug:
+        msg:
+          - "============================================================"
+          - "FINAL SCAN ARTIFACTS"
+          - "============================================================"
+          - "Server: {{ inventory_hostname }}"
+          - "Directory: {{ final_artifact_dir }}"
+          - "XML: {{ final_artifact_dir }}/final-xccdf-results.xml"
+          - "HTML: {{ final_artifact_dir }}/final-report.html"
+          - "============================================================"
+
+
+    # ============================================================
+    # 14. Remove temporary files from server
+    # ============================================================
+
+    - name: Remove temporary scan files from server
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ remote_results }}"
+        - "{{ remote_report }}"
+
+
+    # ============================================================
+    # 15. Git status
+    # ============================================================
+
+    - name: Check Git status
+      ansible.builtin.command:
+        cmd: git status --short
+      args:
+        chdir: "{{ playbook_dir }}"
+      register: git_status
+      changed_when: false
+      delegate_to: localhost
+      become: false
+
+    - name: Display Git status
+      ansible.builtin.debug:
+        var: git_status.stdout_lines
+
+
+    # ============================================================
+    # 16. Configure Git identity
+    # ============================================================
+
+    - name: Configure Git username
+      ansible.builtin.command:
+        cmd: git config user.name "AravindSRaja"
+      args:
+        chdir: "{{ playbook_dir }}"
+      delegate_to: localhost
+      become: false
+
+    - name: Configure Git email
+      ansible.builtin.command:
+        cmd: git config user.email "aravind@example.com"
+      args:
+        chdir: "{{ playbook_dir }}"
+      delegate_to: localhost
+      become: false
+
+
+    # ============================================================
+    # 17. Add final scan artifacts
+    # ============================================================
+
+    - name: Add final scan artifacts to Git
+      ansible.builtin.command:
+        cmd: git add "Final-Scan/{{ inventory_hostname }}/"
+      args:
+        chdir: "{{ playbook_dir }}"
+      register: git_add
+      changed_when: true
+      delegate_to: localhost
+      become: false
+
+
+    # ============================================================
+    # 18. Commit final scan artifacts
+    # ============================================================
+
+    - name: Commit final scan artifacts
+      ansible.builtin.command:
+        cmd: >
+          git commit
+          -m "Add final CIS Level 1 assessment for {{ inventory_hostname }}"
+      args:
+        chdir: "{{ playbook_dir }}"
+      register: git_commit
+      changed_when: git_commit.rc == 0
+      failed_when:
+        - git_commit.rc != 0
+        - "'nothing to commit' not in git_commit.stdout"
+      delegate_to: localhost
+      become: false
+
+
+    # ============================================================
+    # 19. Push final artifacts to GitHub
+    # ============================================================
+
+    - name: Push final scan artifacts to GitHub
+      ansible.builtin.shell:
+        cmd: >
+          git push
+          https://AravindSRaja:{{ lookup('env', 'GITHUB_TOKEN') }}@github.com/AravindSRaja/Staging-Server-Batch-1.git
+          {{ github_branch }}
+      args:
+        chdir: "{{ playbook_dir }}"
+      environment:
+        GIT_TERMINAL_PROMPT: "0"
+      register: git_push
+      changed_when: true
+      no_log: true
+      delegate_to: localhost
+      become: false
+
+
+    # ============================================================
+    # 20. Final summary
+    # ============================================================
+
+    - name: Final assessment summary
+      ansible.builtin.debug:
+        msg:
+          - "============================================================"
+          - "FINAL CIS LEVEL 1 ASSESSMENT COMPLETE"
+          - "============================================================"
+          - "Server: {{ inventory_hostname }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "OpenSCAP return code: {{ scan_result.rc }}"
+          - ""
+          - "GitHub directory:"
+          - "Final-Scan/{{ inventory_hostname }}/"
+          - ""
+          - "Files:"
+          - "  final-xccdf-results.xml"
+          - "  final-report.html"
+          - ""
+          - "Initial assessment remains untouched."
+          - "============================================================"
