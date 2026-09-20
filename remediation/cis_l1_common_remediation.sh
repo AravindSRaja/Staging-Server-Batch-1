@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+
+# Require root privileges
+if [ "$(id -u)" -ne 0 ]; then
+    echo "ERROR: This remediation script must be run as root."
+    exit 1
+fi
+
 ###############################################################################
 #
 # Bash Remediation Script generated from evaluation of CIS Ubuntu Linux 24.04 LTS Benchmark for Level 1 - Server
