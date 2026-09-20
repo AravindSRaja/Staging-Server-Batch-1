@@ -1,0 +1,38 @@
+---
+- name: Test Ansible Become
+  hosts: ubuntu
+  become: true
+  become_method: sudo
+  become_user: root
+  gather_facts: false
+
+  tasks:
+
+    - name: Check effective user
+      ansible.builtin.command:
+        cmd: whoami
+      register: whoami_result
+      changed_when: false
+
+    - name: Check effective UID
+      ansible.builtin.command:
+        cmd: id -u
+      register: uid_result
+      changed_when: false
+
+    - name: Display privilege information
+      ansible.builtin.debug:
+        msg:
+          - "whoami: {{ whoami_result.stdout }}"
+          - "UID: {{ uid_result.stdout }}"
+
+    - name: Verify root privilege
+      ansible.builtin.assert:
+        that:
+          - whoami_result.stdout | trim == "root"
+          - uid_result.stdout | trim == "0"
+        fail_msg: >
+          Ansible is NOT running as root.
+          whoami={{ whoami_result.stdout }},
+          uid={{ uid_result.stdout }}
+        success_msg: "Ansible privilege escalation is working. Running as root."
