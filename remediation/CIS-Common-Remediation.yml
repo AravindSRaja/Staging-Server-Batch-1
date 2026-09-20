@@ -2,32 +2,87 @@
 - name: Execute Common CIS Level 1 Remediation
   hosts: ubuntu
   become: true
+  become_method: sudo
+  become_user: root
   gather_facts: true
   serial: 1
 
   vars:
+    # Centralized remediation script stored in the Git repository
     remediation_script: "{{ playbook_dir }}/cis_l1_common_remediation.sh"
+
+    # Location on the target server
     remote_script: "/home/aravind/cis_l1_common_remediation.sh"
+
+    # Execution log on the target server
     remediation_log: "/home/aravind/cis_l1_common_remediation.log"
 
   tasks:
 
-    - name: Verify remediation script exists on Ansible controller
+    ###########################################################################
+    # 1. Verify Ansible privilege escalation
+    ###########################################################################
+
+    - name: Check effective UID
+      ansible.builtin.command:
+        cmd: id -u
+      register: effective_uid
+      changed_when: false
+
+    - name: Verify Ansible is running as root
+      ansible.builtin.assert:
+        that:
+          - effective_uid.stdout | trim == "0"
+        fail_msg: >
+          SAFETY CHECK FAILED.
+          Ansible is not running as root on {{ inventory_hostname }}.
+          Effective UID: {{ effective_uid.stdout | trim }}.
+          Remediation will NOT be executed.
+        success_msg: >
+          Privilege check passed.
+          Ansible is running as root on {{ inventory_hostname }}.
+
+    - name: Display effective user
+      ansible.builtin.command:
+        cmd: whoami
+      register: effective_user
+      changed_when: false
+
+    - name: Display privilege information
+      ansible.builtin.debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "User: {{ effective_user.stdout | trim }}"
+          - "UID: {{ effective_uid.stdout | trim }}"
+
+    ###########################################################################
+    # 2. Verify remediation script exists on Ansible controller
+    ###########################################################################
+
+    - name: Verify remediation script exists
       ansible.builtin.stat:
         path: "{{ remediation_script }}"
       delegate_to: localhost
       become: false
-      register: script_file
+      register: remediation_file
 
     - name: Stop if remediation script is missing
       ansible.builtin.assert:
         that:
-          - script_file.stat.exists
+          - remediation_file.stat.exists
+          - remediation_file.stat.isreg
         fail_msg: >
-          Remediation script not found:
+          Remediation script was not found on the Ansible controller:
+          {{ remediation_script }}
+        success_msg: >
+          Remediation script found:
           {{ remediation_script }}
 
-    - name: Copy common remediation script to server
+    ###########################################################################
+    # 3. Copy centralized remediation script to target
+    ###########################################################################
+
+    - name: Copy common CIS remediation script
       ansible.builtin.copy:
         src: "{{ remediation_script }}"
         dest: "{{ remote_script }}"
@@ -35,51 +90,147 @@
         group: aravind
         mode: "0700"
 
+    ###########################################################################
+    # 4. Verify copied script
+    ###########################################################################
+
+    - name: Verify remediation script on target
+      ansible.builtin.stat:
+        path: "{{ remote_script }}"
+      register: remote_script_status
+
+    - name: Verify remediation script was copied correctly
+      ansible.builtin.assert:
+        that:
+          - remote_script_status.stat.exists
+          - remote_script_status.stat.isreg
+          - remote_script_status.stat.mode == "0700"
+        fail_msg: >
+          Remediation script verification failed on {{ inventory_hostname }}.
+        success_msg: >
+          Remediation script is present and has permissions 0700.
+
+    ###########################################################################
+    # 5. Verify root one more time immediately before execution
+    ###########################################################################
+
+    - name: Verify root privilege immediately before remediation
+      ansible.builtin.command:
+        cmd: id -u
+      register: pre_remediation_uid
+      changed_when: false
+
+    - name: Abort if effective UID is not zero
+      ansible.builtin.assert:
+        that:
+          - pre_remediation_uid.stdout | trim == "0"
+        fail_msg: >
+          SAFETY CHECK FAILED immediately before remediation.
+          Effective UID: {{ pre_remediation_uid.stdout | trim }}.
+          Script execution aborted.
+        success_msg: >
+          Final privilege check passed.
+          Remediation will execute as root.
+
+    ###########################################################################
+    # 6. Execute centralized remediation script
+    ###########################################################################
+
     - name: Execute common CIS remediation script
       ansible.builtin.command:
         cmd: /bin/bash "{{ remote_script }}"
       register: remediation_result
       changed_when: true
 
+    ###########################################################################
+    # 7. Save execution output
+    ###########################################################################
+
     - name: Save remediation execution log
       ansible.builtin.copy:
         content: |
-          ============================================
-          CIS Level 1 Common Remediation
-          ============================================
-          Host: {{ inventory_hostname }}
-          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
-          Execution time: {{ ansible_date_time.iso8601 }}
-          Return code: {{ remediation_result.rc }}
+          ============================================================
+          CIS LEVEL 1 COMMON REMEDIATION
+          ============================================================
 
-          STDOUT:
-          {{ remediation_result.stdout }}
+          Host:
+          {{ inventory_hostname }}
 
-          STDERR:
-          {{ remediation_result.stderr }}
-          ============================================
+          OS:
+          {{ ansible_distribution }} {{ ansible_distribution_version }}
+
+          Kernel:
+          {{ ansible_kernel }}
+
+          Execution Time:
+          {{ ansible_date_time.iso8601 }}
+
+          Effective User:
+          {{ effective_user.stdout | trim }}
+
+          Effective UID:
+          {{ effective_uid.stdout | trim }}
+
+          Return Code:
+          {{ remediation_result.rc }}
+
+          ============================================================
+          STDOUT
+          ============================================================
+
+          {{ remediation_result.stdout | default('') }}
+
+          ============================================================
+          STDERR
+          ============================================================
+
+          {{ remediation_result.stderr | default('') }}
+
+          ============================================================
+          END OF REMEDIATION LOG
+          ============================================================
         dest: "{{ remediation_log }}"
         owner: aravind
         group: aravind
         mode: "0600"
 
+    ###########################################################################
+    # 8. Display result in Semaphore
+    ###########################################################################
+
     - name: Display remediation result
       ansible.builtin.debug:
         msg:
+          - "============================================================"
+          - "CIS remediation completed"
           - "Host: {{ inventory_hostname }}"
           - "Return code: {{ remediation_result.rc }}"
-          - "Remediation execution completed."
+          - "Log: {{ remediation_log }}"
+          - "============================================================"
 
-    - name: Fail if remediation script failed
+    ###########################################################################
+    # 9. Stop if remediation script returned an error
+    ###########################################################################
+
+    - name: Fail if remediation script returned non-zero
       ansible.builtin.fail:
         msg: >
-          CIS remediation script failed on {{ inventory_hostname }}.
+          CIS remediation script FAILED on {{ inventory_hostname }}.
           Return code: {{ remediation_result.rc }}.
           Review {{ remediation_log }}.
       when: remediation_result.rc != 0
 
-    - name: Remove remediation script after successful execution
-      ansible.builtin.file:
-        path: "{{ remote_script }}"
-        state: absent
+    ###########################################################################
+    # 10. Final success message
+    ###########################################################################
+
+    - name: Remediation successful
+      ansible.builtin.debug:
+        msg:
+          - "============================================================"
+          - "CIS remediation SUCCESSFUL"
+          - "Host: {{ inventory_hostname }}"
+          - "Remediation script: {{ remote_script }}"
+          - "Execution log: {{ remediation_log }}"
+          - "============================================================"
       when: remediation_result.rc == 0
