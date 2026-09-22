@@ -74,13 +74,13 @@ fi
 
 # # END fix for 'xccdf_org.ssgproject.content_rule_aide_build_database'
 
-###############################################################################
-# BEGIN fix (3 / 116) for 'xccdf_org.ssgproject.content_rule_partition_for_tmp'
-###############################################################################
-(>&2 echo "Remediating rule 3/116: 'xccdf_org.ssgproject.content_rule_partition_for_tmp'")
-(>&2 echo "FIX FOR THIS RULE 'xccdf_org.ssgproject.content_rule_partition_for_tmp' IS MISSING!")
+# ###############################################################################
+# # BEGIN fix (3 / 116) for 'xccdf_org.ssgproject.content_rule_partition_for_tmp'
+# ###############################################################################
+# (>&2 echo "Remediating rule 3/116: 'xccdf_org.ssgproject.content_rule_partition_for_tmp'")
+# (>&2 echo "FIX FOR THIS RULE 'xccdf_org.ssgproject.content_rule_partition_for_tmp' IS MISSING!")
 
-# END fix for 'xccdf_org.ssgproject.content_rule_partition_for_tmp'
+# # END fix for 'xccdf_org.ssgproject.content_rule_partition_for_tmp'
 
 ###############################################################################
 # BEGIN fix (4 / 116) for 'xccdf_org.ssgproject.content_rule_sudo_custom_logfile'
